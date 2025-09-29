@@ -1,14 +1,50 @@
 package main
 
 import (
+	"beginnerGo/internal/app"
+	"beginnerGo/internal/routes"
+	"flag"
 	"fmt"
+	"net/http"
+	"time"
 )
 
 func main() {
+	var port int
+	flag.IntVar(&port, "port", 8080, "Port to run the server on")
+	flag.Parse()
+
+	app, err := app.NewApplication()
+	if err != nil {
+		// ! panic is keyword to stop the program immediately
+		panic(err)
+	}
+
+	// ! close the database connection when main function ends
+	// ! defer will ensure the function is called at the end of the surrounding function
+	defer app.DB.Close()
+
+	app.Logger.Println("Logging from now..")
 	fmt.Println(("Hello frontend master!"))
 
+	r := routes.SetupRoutes(app)
+
+	server := &http.Server{
+		Addr:         fmt.Sprintf(":%d", port),
+		Handler:      r,
+		IdleTimeout:  time.Minute,
+		ReadTimeout:  10 * time.Second,
+		WriteTimeout: 30 * time.Second,
+	}
+
+	app.Logger.Printf("We are running on the port %d\n", port)
+
+	err = server.ListenAndServe()
+	if err != nil {
+		app.Logger.Fatal(err)
+	}
 	// sample function for reference purpose
-	Tutorial("Golang", "Golang is an open-source programming language.")
+	// Tutorial("Golang", "Golang is an open-source programming language.")
 }
 
 type Location struct {
@@ -87,6 +123,12 @@ func Tutorial(title, description string) string {
 	for i, v := range secondSlice {
 		fmt.Println("This is current index:", i, "with value:", v)
 	}
+
+	// * ":" starting from index
+	// * "x:" starting from index x to end
+	// * ":x" starting from index 0 to x-1
+	// sample below to remove index 2 from slice
+	// thirdSlice = append(secondSlice[:2], secondSlice[3:]...)
 
 	// map declaration
 	capitals := map[string]string{
